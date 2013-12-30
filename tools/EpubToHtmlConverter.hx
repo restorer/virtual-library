@@ -1,8 +1,9 @@
-import neko.Lib;
 import sys.io.File;
 
 using Lambda;
 using StringTools;
+
+// http://lib.haxe.org/p/HtmlParser
 
 class EpubToHtmlConverter {
 	static var entryMap:Map<String, haxe.zip.Entry>;
@@ -18,23 +19,33 @@ class EpubToHtmlConverter {
 	static var optimizedRulesMap:Map<String, String>;
 	static var selectorToOptimizedMap:Map<String, String>;
 	static var pageList:List<String>;
+	static var cfgBodyClass:String;
+	static var cfgSpineSkip:Int;
+	static var cfgAllowNbspPar:Bool;
+	static var cfgAllowImages:Bool;
 
 	static function dirname(path:String, appendSeparator:Bool=false):String {
 		return (~/\//.match(path) ? (~/\/[^\/]+$/.replace(path, "") + (appendSeparator ? "/" : "")) : "");
 	}
 
 	static function entryAsXml(entryName:String):Xml {
-		var unzipped = haxe.zip.Reader.unzip(entryMap[entryName]);
-		return Xml.parse(Std.string(unzipped));
+		var unzipped = CustomZipReader.unzip(entryMap[entryName]);
+		var content = Std.string(unzipped);
+
+		if (~/<section>/.match(content) && !~/<\/section>/.match(content)) {
+			content = content.replace("</body>", "</section></body>");
+		}
+
+		return Xml.parse(content);
 	}
 
 	static function entryAsString(entryName:String):String {
-		var unzipped = haxe.zip.Reader.unzip(entryMap[entryName]);
+		var unzipped = CustomZipReader.unzip(entryMap[entryName]);
 		return Std.string(unzipped);
 	}
 
 	static function entryAsBinary(entryName:String) {
-		return haxe.zip.Reader.unzip(entryMap[entryName]);
+		return CustomZipReader.unzip(entryMap[entryName]);
 	}
 
 	static function itemNameToEntryName(itemName:String):String {
@@ -57,7 +68,7 @@ class EpubToHtmlConverter {
 			var re = ~/^\s*([a-zA-Z0-9\-]+)\s*:\s*([A-Za-z0-9\s,'"%]+)\s*$/;
 
 			if (re.match(v)) {
-				return re.matched(1).toLowerCase() + ":" + re.matched(2).toLowerCase();
+				return re.matched(1).toLowerCase().trim() + ":" + re.matched(2).toLowerCase().trim();
 			} else {
 				return null;
 			}
@@ -66,7 +77,8 @@ class EpubToHtmlConverter {
 				v.startsWith("font-weight:")
 				|| v.startsWith("text-align:")
 				|| v.startsWith("font-style:")
-				|| v.startsWith("font-size:")
+				|| v.startsWith("text-indent:")
+				|| v.startsWith("margin:0")
 			));
 		});
 
@@ -74,7 +86,7 @@ class EpubToHtmlConverter {
 	}
 
 	static function preprocessCss(css:String, ?basePath:String) {
-		var css = ~/\/\*.*?\*\//sg.replace(css, "");
+		var css = ~/\/\*.*?\*\//sgm.replace(css, "");
 		var re = ~/\s*([^{]+)\s*\{([^}]*)\}/;
 
 		while (css != null) {
@@ -90,7 +102,7 @@ class EpubToHtmlConverter {
 			}
 
 			re.matched(1).split(",").iter(function(v) {
-				var ire = ~/^\s*([a-zA-Z0-9]+?\.[a-zA-Z0-9\-_]+)\s*$/;
+				var ire = ~/^\s*((?:[a-zA-Z0-9]+)?\.[a-zA-Z0-9\-_]+)\s*$/;
 
 				if (ire.match(v)) {
 					if (basePath != null) {
@@ -111,7 +123,7 @@ class EpubToHtmlConverter {
 
 			var tagName = node.nodeName.toLowerCase();
 
-			if (tagName == "img" || tagName == "image") {
+			if (cfgAllowImages && (tagName == "img" || tagName == "image")) {
 				var imgPath = (tagName == "img" ? node.get("src") : node.get("xlink:href"));
 
 				if (imgPath != null) {
@@ -169,7 +181,10 @@ class EpubToHtmlConverter {
 			}
 		}
 
-		preprocessNode(entryAsXml(entryName).elementsNamed("html").next().elementsNamed("body").next(), entryName);
+		preprocessNode(
+			entryAsXml(entryName).elementsNamed("html").next().elementsNamed("body").next(),
+			entryName
+		);
 	}
 
 	static function optimizeCssRules() {
@@ -228,6 +243,9 @@ class EpubToHtmlConverter {
 	}
 
 	static function parseNode(root:Xml, basePath:String, newlines=true):String {
+		var nbspChar = new haxe.Utf8();
+		nbspChar.addChar(160);
+
 		var parts = new List<String>();
 
 		for (node in root) {
@@ -236,7 +254,9 @@ class EpubToHtmlConverter {
 			}
 
 			if (node.nodeType != Xml.Document && node.nodeType != Xml.Element) {
-				parts.add(~/&nbsp;$/.replace(node.nodeValue.trim(), ""));
+				var part = node.nodeValue.replace(nbspChar.toString(), "&nbsp;").trim();
+				part = ~/(.)&nbsp;$/.replace(part, "$1");
+				parts.add(part);
 				continue;
 			}
 
@@ -248,16 +268,18 @@ class EpubToHtmlConverter {
 			}
 
 			if (tagName == "img" || tagName == "image") {
-				var imgPath = (tagName == "img" ? node.get("src") : node.get("xlink:href"));
+				if (cfgAllowImages) {
+					var imgPath = (tagName == "img" ? node.get("src") : node.get("xlink:href"));
 
-				if (imgPath != null) {
-					var buf = new StringBuf();
-					buf.add("<img src=\"");
-					buf.add(imageMap[normalizePath(basePath, imgPath)].htmlEscape());
-					buf.add("\"");
-					appendClassesAndStyles(buf, tagName, node, basePath);
-					buf.add(" />");
-					parts.add(buf.toString());
+					if (imgPath != null) {
+						var buf = new StringBuf();
+						buf.add("<img src=\"");
+						buf.add(imageMap[normalizePath(basePath, imgPath)].htmlEscape());
+						buf.add("\"");
+						appendClassesAndStyles(buf, tagName, node, basePath);
+						buf.add(" />");
+						parts.add(buf.toString());
+					}
 				}
 
 				continue;
@@ -275,14 +297,24 @@ class EpubToHtmlConverter {
 
 			var inner = parseNode(node, basePath, false);
 
-			if ((inner.length == 0) || ((tagName == "p" || tagName == "div") && inner == "<br />")) {
+			if ((inner.length == 0)
+				|| ((tagName == "p" || tagName == "div") && inner == "<br />")
+				|| (!cfgAllowNbspPar && tagName == "p" && inner == "&nbsp;")
+			) {
 				continue;
 			}
+
+			inner = ~/(.)<br \/>$/.replace(inner, "$1");
 
 			var buf = new StringBuf();
 			buf.add("<");
 			buf.add(tagName);
 			appendClassesAndStyles(buf, tagName, node, basePath);
+
+			if (tagName == "a") {
+				buf.add(" href=\"javascript:;\"");
+			}
+
 			buf.add(">");
 			buf.add(inner);
 			buf.add("</");
@@ -300,15 +332,17 @@ class EpubToHtmlConverter {
 		var page = parseNode(
 			entryAsXml(entryName).elementsNamed("html").next().elementsNamed("body").next(),
 			entryName
-		);
+		).trim();
 
-		pageList.add(page);
+		if (page.length != 0) {
+			pageList.add(page);
+		}
 	}
 
 	static function readEpub(fileName:String) {
 		entryMap = new Map<String, haxe.zip.Entry>();
 
-		haxe.zip.Reader.readZip(File.read(fileName)).iter(function(v) {
+		CustomZipReader.readZip(File.read(fileName)).iter(function(v) {
 			entryMap[v.fileName] = v;
 		});
 
@@ -339,13 +373,18 @@ class EpubToHtmlConverter {
 			itemMap[node.get("id")] = node.get("href");
 		}
 
+		var index:Int = 0;
 		imageIndex = 0;
 		imageMap = new Map<String, String>();
 		selectorToRuleMap = new Map<String, String>();
 		usedSelectorsMap = new Map<String, Bool>();
 
 		for (node in packageNode.elementsNamed("spine").next().elementsNamed("itemref")) {
-			preprocessPage(itemNameToEntryName(node.get("idref")));
+			if (index >= cfgSpineSkip) {
+				preprocessPage(itemNameToEntryName(node.get("idref")));
+			}
+
+			index++;
 		}
 
 		optimizedRulesMap = new Map<String, String>();
@@ -353,10 +392,15 @@ class EpubToHtmlConverter {
 
 		optimizeCssRules();
 
+		index = 0;
 		pageList = new List<String>();
 
 		for (node in packageNode.elementsNamed("spine").next().elementsNamed("itemref")) {
-			processPage(itemNameToEntryName(node.get("idref")));
+			if (index >= cfgSpineSkip) {
+				processPage(itemNameToEntryName(node.get("idref")));
+			}
+
+			index++;
 		}
 	}
 
@@ -366,9 +410,11 @@ class EpubToHtmlConverter {
 		buf.add("<!DOCTYPE html>\n");
 		buf.add("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n");
 		buf.add("<head>\n");
+		buf.add("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />");
 		buf.add("<title>");
 		buf.add((bookTitle + " - " + bookAuthor).htmlEscape());
 		buf.add("</title>\n");
+		buf.add("<link rel=\"stylesheet\" type=\"text/css\" href=\"../book.css\" />");
 
 		if (!optimizedRulesMap.empty()) {
 			buf.add("<style type=\"text/css\">\n");
@@ -376,7 +422,7 @@ class EpubToHtmlConverter {
 			for (selector in optimizedRulesMap.keys()) {
 				buf.add(".");
 				buf.add(optimizedRulesMap[selector]);
-				buf.add(" {");
+				buf.add(" { ");
 				buf.add(selector);
 				buf.add(" }\n");
 			}
@@ -385,8 +431,18 @@ class EpubToHtmlConverter {
 		}
 
 		buf.add("</head>\n");
-		buf.add("<body>\n");
-		buf.add(pageList.join("\n<hr />\n"));
+		buf.add("<body");
+
+		if (cfgBodyClass != null) {
+			buf.add(" class=\"" + cfgBodyClass.htmlEscape() + "\"");
+		}
+
+		buf.add(">\n");
+		buf.add("<div class=\"wrapper\">\n");
+		buf.add("<div class=\"chapter\">\n");
+		buf.add(pageList.join("\n</div>\n<div class=\"chapter\">\n"));
+		buf.add("</div>\n");
+		buf.add("</div>\n");
 		buf.add("</body>\n");
 		buf.add("</html>\n");
 
@@ -394,33 +450,47 @@ class EpubToHtmlConverter {
 	}
 
 	static function writeBook(namePart:String) {
-		var fo = File.write("../books/" + namePart + "/index.html", true);
+		var fo = File.write("../books/" + namePart + "/book.new.html", true);
 		fo.writeString(generateHtml());
 		fo.close();
 
-		for (imageName in imageMap.keys()) {
-			fo = File.write("../books/" + namePart + "/" + imageMap[imageName], true);
-			fo.write(entryAsBinary(imageName));
-			fo.close();
+		if (cfgAllowImages) {
+			for (imageName in imageMap.keys()) {
+				fo = File.write("../books/" + namePart + "/" + imageMap[imageName], true);
+				fo.write(entryAsBinary(imageName));
+				fo.close();
+			}
 		}
 	}
 
-	static function convert(namePart:String) {
+	static function convert(
+		namePart:String,
+		bodyClass:String=null,
+		spineSkip:Int=0,
+		allowNbspPar:Bool=true,
+		allowImages:Bool=false
+	) {
 		trace("Converting " + namePart + "...");
+
+		cfgBodyClass = bodyClass;
+		cfgSpineSkip = spineSkip;
+		cfgAllowNbspPar = allowNbspPar;
+		cfgAllowImages = allowImages;
+
 		readEpub("../books/" + namePart + "/book-" + namePart + ".epub");
 		writeBook(namePart);
 	}
 
 	static function main() {
-		convert("01"); // Ажэшка Эліза - Хам
+		convert("01", null, 0, false); // Ажэшка Эліза - Хам
 		convert("02"); // Астравец Сяргей - Райскія яблычкі
-		// Багдановіч Максім - Вершы
-		// Быкаў Васіль - Мёртвым не баліць
-		// Бічэль Данута - Нёман ідзе (вершы)
-		// Караткевіч Уладзімір - Хрыстос прызямліўся ў Гародні
+		convert("03"); // Багдановіч Максім - Вершы
+		convert("04"); // Быкаў Васіль - Мёртвым не баліць
+		convert("05", "condensed"); // Бічэль Данута - Нёман ідзе (вершы)
+		convert("06", null, 2); // Караткевіч Уладзімір - Хрыстос прызямліўся ў Гародні
 		convert("07"); // Карпюк Аляксей - Карані
 		convert("08"); // Пестрак Піліп - Лясная песня
-		// Петрушкевіч Ала - Пярсцёнак (вершы)
-		convert("10"); // Стурэйка Сцяпан - Разрушыцель
+		convert("09", "condensed"); // Петрушкевіч Ала - Пярсцёнак (вершы)
+		convert("10", null, 0, true, true); // Стурэйка Сцяпан - Разрушыцель
 	}
 }

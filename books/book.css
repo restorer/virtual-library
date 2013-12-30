@@ -1,0 +1,50 @@
+@import url(http://fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic,700italic&subset=latin,cyrillic);
+
+*,
+*:before,
+*:after {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+html {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	margin: 0;
+	padding: 0 24px;
+	font-size: 24px;
+	font-family: 'Noto Serif', serif;
+}
+
+.wrapper {
+	max-width: 650px;
+	margin: 0 auto;
+	text-align: justify;
+}
+
+img {
+	display: block;
+	width: 100%;
+}
+
+.wrapper>.chapter:first-child>p:first-child>img {
+	margin-top: -1em;
+}
+
+.wrapper>.chapter:last-child>h1:first-child>img {
+	margin-bottom: -1em;
+}
+
+.condensed .wrapper {
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
+.condensed p {
+	margin-top: 0;
+	margin-bottom: 0;
+}
