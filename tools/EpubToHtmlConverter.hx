@@ -410,11 +410,11 @@ class EpubToHtmlConverter {
 		buf.add("<!DOCTYPE html>\n");
 		buf.add("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n");
 		buf.add("<head>\n");
-		buf.add("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />");
+		buf.add("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n");
 		buf.add("<title>");
 		buf.add((bookTitle + " - " + bookAuthor).htmlEscape());
 		buf.add("</title>\n");
-		buf.add("<link rel=\"stylesheet\" type=\"text/css\" href=\"../book.css\" />");
+		buf.add("<link rel=\"stylesheet\" type=\"text/css\" href=\"../book.css\" />\n");
 
 		if (!optimizedRulesMap.empty()) {
 			buf.add("<style type=\"text/css\">\n");
