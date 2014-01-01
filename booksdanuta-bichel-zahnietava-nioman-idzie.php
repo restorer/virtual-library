@@ -1,18 +1,15 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Нёман ідзе - Данута Бічэль</title>
-<link rel="stylesheet" type="text/css" href="../book.css" />
-<style type="text/css">
+<?php
+
+return array(
+	'cssClass' => 'condensed',
+	'author' => 'Данута Бічэль',
+	'title' => 'Нёман ідзе',
+	'styles' => '
 .s2 { font-style:italic; }
 .s1 { text-align:center; }
-</style>
-</head>
-<body class="condensed">
-<div class="wrapper">
-<div class="chapter">
-<p>Данута Бічэль</p>
+	',
+	'chapters' => array(
+'<p>Данута Бічэль</p>
 <p class="s1">&nbsp;</p>
 <p>Нёман ідзе</p>
 <p class="s1">&nbsp;</p>
@@ -870,7 +867,6 @@
 <p>Другому,</p>
 <p>Хто сам вось так</p>
 <p>Лістоў па начах</p>
-<p>Не чытаў…</p></div>
-</div>
-</body>
-</html>
+<p>Не чытаў…</p>'
+	),
+);
