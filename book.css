@@ -1,5 +1,3 @@
-@import url(http://fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic,700italic&subset=latin,cyrillic);
-
 *,
 *:before,
 *:after {
@@ -16,7 +14,7 @@ html, body {
 
 body {
 	font-size: 24px;
-	font-family: 'Noto Serif', serif;
+	font-family: "Noto Serif", serif;
 }
 
 a {
@@ -45,7 +43,7 @@ img {
 }
 
 .links {
-	background: #888 url(cover.jpg);
+	background: #888 url(cover.jpg) repeat;
 	padding: 1em 0.5em;
 	line-height: 1em;
 	color: #fff;
@@ -67,26 +65,33 @@ img {
 }
 
 .cover .wrapper {
-	height: 100%;
-	background: #888 url(cover.jpg);
+	position: relative;
+	min-height: 100%;
 }
 
-.cover .tbl {
+.cover .outer {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+}
+
+.cover .inner {
 	display: table;
 	width: 100%;
 	height: 100%;
+	border-collapse: collapse;
+	background: #888 url(cover.jpg) repeat;
+}
 
+.cover .row {
+	display: table-row;
+	text-align: center;
 	background: -moz-linear-gradient(left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 100%);
 	background: -webkit-gradient(linear, left top, right top, color-stop(0%, rgba(0,0,0,0.65)), color-stop(5%, rgba(0,0,0,0)), color-stop(100%, rgba(0,0,0,0)));
 	background: -webkit-linear-gradient(left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 100%);
 	background: -o-linear-gradient(left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 100%);
 	background: -ms-linear-gradient(left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 100%);
 	background: linear-gradient(to right, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 100%);
-}
-
-.cover .row {
-	display: table-row;
-	text-align: center;
 }
 
 .cover .chapter {
@@ -96,30 +101,58 @@ img {
 	padding: 0 30px;
 }
 
-.books .wrapper {
+.list .wrapper {
 	text-align: left;
+	padding-bottom: 1em;
 }
 
-.books .list {
-	font-size: 22px;
+.list h1 {
+	margin-bottom: 0;
 }
 
-@media (max-width: 690px) {
+.list .book {
+	overflow: hidden;
+}
+
+.list .book h2 {
+	float: left;
+	line-height: 1em;
+}
+
+.list .book h3 {
+	margin-bottom: 0;
+	margin-left: 65px;
+}
+
+.list .book p {
+	margin-top: 0;
+	margin-left: 65px;
+}
+
+@media (max-width: 670px) {
 	body {
 		font-size: 16px;
 	}
 
 	.chapter {
-		margin-left: 20px;
-		margin-right: 20px;
+		margin-left: 10px;
+		margin-right: 10px;
 	}
 
 	.imgw {
-		margin-left: -20px;
-		margin-right: -20px;
+		margin-left: -10px;
+		margin-right: -10px;
 	}
 
-	.cover {
-		font-size: 20px;
+	.list .book h2 {
+		width: 40px;
+	}
+
+	.list .book h3 {
+		margin-left: 45px;
+	}
+
+	.list .book p {
+		margin-left: 45px;
 	}
 }
