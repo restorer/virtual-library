@@ -90,9 +90,9 @@ class Epub {
 		fo.writeString("\t'cssClass' => '" + (cssClass == null ? "" : cssClass) + "',\n");
 		fo.writeString("\t'author' => '" + author + "',\n");
 		fo.writeString("\t'title' => '" + title + "',\n");
-		fo.writeString("\t'styles' => '\n");
-		fo.writeString(generateStyles());
-		fo.writeString("\t',\n");
+		fo.writeString("\t'style' => '");
+		fo.writeString(generateStyle());
+		fo.writeString("',\n");
 		fo.writeString("\t'chapters' => array(\n");
 		fo.writeString(generateChapters(imagePrefix).join(",\n"));
 		fo.writeString("\n\t),\n");
@@ -108,15 +108,21 @@ class Epub {
 		}
 	}
 
-	function generateStyles():String {
+	function generateStyle():String {
 		var buf = new StringBuf();
 
-		for (selector in optimizedRules.keys()) {
-			buf.add(".");
-			buf.add(optimizedRules[selector]);
-			buf.add(" { ");
-			buf.add(selector);
-			buf.add(" }\n");
+		if (!optimizedRules.empty()) {
+			buf.add("\n");
+
+			for (selector in optimizedRules.keys()) {
+				buf.add(".");
+				buf.add(optimizedRules[selector]);
+				buf.add(" { ");
+				buf.add(selector);
+				buf.add(" }\n");
+			}
+
+			buf.add("\t");
 		}
 
 		return buf.toString();
@@ -329,7 +335,7 @@ class Epub {
 						buf.add("<img src=\"");
 						buf.add(imageMap[FileUtils.normalize(basePath, imgPath)].htmlEscape());
 						buf.add("\"");
-						appendClassesAndStyles(buf, tagName, node, basePath);
+						appendClassesAndStyles(buf, tagName, "", node, basePath);
 						buf.add(" />");
 						parts.add(buf.toString());
 					}
@@ -342,7 +348,7 @@ class Epub {
 				var buf = new StringBuf();
 				buf.add("<");
 				buf.add(tagName);
-				appendClassesAndStyles(buf, tagName, node, basePath);
+				appendClassesAndStyles(buf, tagName, "", node, basePath);
 				buf.add(" />");
 				parts.add(buf.toString());
 				continue;
@@ -358,11 +364,12 @@ class Epub {
 			}
 
 			inner = ~/(.)<br \/>$/.replace(inner, "$1");
+			var isInnerImg = ~/<img src="[^"]+" \/>/.match(inner);
 
 			var buf = new StringBuf();
 			buf.add("<");
-			buf.add(tagName);
-			appendClassesAndStyles(buf, tagName, node, basePath);
+			buf.add(isInnerImg ? "div" : tagName);
+			appendClassesAndStyles(buf, tagName, (isInnerImg ? "imgw" : ""), node, basePath);
 
 			if (tagName == "a") {
 				buf.add(" href=\"javascript:;\"");
@@ -371,7 +378,7 @@ class Epub {
 			buf.add(">");
 			buf.add(inner);
 			buf.add("</");
-			buf.add(tagName);
+			buf.add(isInnerImg ? "div" : tagName);
 			buf.add(">");
 			parts.add(buf.toString());
 		}
@@ -381,7 +388,7 @@ class Epub {
 		}).join(newlines ? "\n" : "");
 	}
 
-	function appendClassesAndStyles(buf:StringBuf, tagName:String, node:Xml, basePath:String):Void {
+	function appendClassesAndStyles(buf:StringBuf, tagName:String, appendCssClass:String, node:Xml, basePath:String):Void {
 		if (node.get("class") != null) {
 			var part = node.get("class").split(" ").map(function(v) {
 				v = v.trim().toLowerCase();
@@ -403,11 +410,17 @@ class Epub {
 				return (v != null);
 			}).join(" ");
 
+			if (appendCssClass != null && appendCssClass != "") {
+				part = (part + " " + appendCssClass).trim();
+			}
+
 			if (part.length != 0) {
 				buf.add(" class=\"");
 				buf.add(part.htmlEscape());
 				buf.add("\"");
 			}
+		} else if (appendCssClass != null && appendCssClass != "") {
+			buf.add(" class=\"" + appendCssClass + "\"");
 		}
 
 		if (node.get("style") != null) {
