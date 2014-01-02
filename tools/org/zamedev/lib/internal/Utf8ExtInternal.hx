@@ -1,4 +1,4 @@
-package org.zamedev.lib;
+package org.zamedev.lib.internal;
 
 class Utf8ExtInternal {
 	public static function fillUpperToLowerMap(map:Map<Int,Int>):Void {

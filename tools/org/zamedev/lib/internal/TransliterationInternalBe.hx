@@ -1,4 +1,4 @@
-package org.zamedev.lib;
+package org.zamedev.lib.internal;
 
 class TransliterationInternalBe {
 	public static function fillMap(map:Map<Int,String>):Void {

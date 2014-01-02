@@ -1,10 +1,13 @@
 package org.zamedev.virtualbooks;
 
+import org.zamedev.lib.Transliteration;
 import sys.FileSystem;
 
 class EpubToHtmlConverter {
-	static function convert(name:String, ?skipPages:Int, ?allowImages:Bool, ?allowNbspPar:Bool, ?cssClass:String) {
-		trace("Converting " + name + "...");
+	static function convert(nameBe:String, ?skipPages:Int, ?allowImages:Bool, ?allowNbspPar:Bool, ?cssClass:String) {
+		var name = Transliteration.be(nameBe);
+
+		Sys.println("\"" + nameBe + "\" -> \"" + name + "\"");
 		var epub = new Epub("../epub/" + name + ".epub", skipPages, allowImages, allowNbspPar);
 
 		if (allowImages) {
@@ -14,20 +17,20 @@ class EpubToHtmlConverter {
 
 			epub.writeTo("../books/" + name + ".php", cssClass, "../books/" + name, "books/" + name + "/");
 		} else {
-			epub.writeTo("../books" + name + ".php", cssClass);
+			epub.writeTo("../books/" + name + ".php", cssClass);
 		}
 	}
 
 	static function main() {
-		convert("eliza-azheshka-kham", null, null, false);
-		convert("siarhiej-astraviets-rajskiia-jablychki");
-		convert("maksim-bahdanovich-viershy");
-		convert("vasil-bykaw-miortvym-nie-balits");
-		convert("danuta-bichel-zahnietava-nioman-idzie", null, null, null, "condensed");
-		convert("uladzimir-karatkievich-khrystos-pryziamliwsia-w-harodni", 2);
-		convert("aliaksiej-karpiuk-karani");
-		convert("pilip-piestrak-liasnaia-piesnia");
-		convert("ala-pietrushkievich-piarstsionak", null, null, null, "condensed");
-		convert("stsiapan-sturejka-razrushytsiel", null, true);
+		convert("Эліза Ажэшка - Хам", null, null, false);
+		convert("Сяргей Астравец - Райскія Яблычкі");
+		convert("Максім Багдановіч - Вершы");
+		convert("Васіль Быкаў - Мёртвым Не Баліць");
+		convert("Данута Бічэль-Загнетава - Нёман Ідзе", null, null, null, "condensed");
+		convert("Уладзімір Караткевіч - Хрыстос Прызямліўся Ў Гародні", 2);
+		convert("Аляксей Карпюк - Карані");
+		convert("Піліп Пестрак - Лясная Песня");
+		convert("Ала Петрушкевіч - Пярсцёнак", null, null, null, "condensed");
+		convert("Сцяпан Стурэйка - Разрушыцель", null, true);
 	}
 }

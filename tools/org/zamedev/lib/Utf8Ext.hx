@@ -1,6 +1,7 @@
 package org.zamedev.lib;
 
 import haxe.Utf8;
+import org.zamedev.lib.internal.Utf8ExtInternal;
 
 class Utf8Ext {
 	#if (neko || php || cpp)
