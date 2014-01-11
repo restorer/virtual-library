@@ -369,7 +369,7 @@ class Epub {
 			var buf = new StringBuf();
 			buf.add("<");
 			buf.add(isInnerImg ? "div" : tagName);
-			appendClassesAndStyles(buf, tagName, (isInnerImg ? "imgw" : ""), node, basePath);
+			appendClassesAndStyles(buf, tagName, (isInnerImg ? "img-wrap" : ""), node, basePath);
 
 			if (tagName == "a") {
 				buf.add(" href=\"javascript:;\"");
